@@ -100,10 +100,9 @@
 		init: function(ix,iy)
 		{
 			this.superInit();
-			this.color = this.fill;
-			this.setOrigin(0,0);
 			this.ix = ix;
 			this.iy = iy;
+			this.color = this.fill;
 		},
 		_accessor:{
 			color:{
@@ -128,11 +127,6 @@
 				.setPosition(-this.gridY.width/4, 0)
 				.addChildTo(this);
 			
-			this.skins = DisplayElement().addChildTo(this);
-			this.blocks = DisplayElement().addChildTo(this);
-			
-			
-			
 			var blockPixel = getImageData("fore");
 			var lx = this.gridX.span(14);
 			var ly = this.gridY.span(12);
@@ -141,32 +135,49 @@
 			var scale = Math.min(sx,sy);
 			var offsetX = (this.gridX.width - blockPixel.width * scale) / 2;
 			var offsetY = 0;
+			this.field = {
+				x: offsetX,
+				y: offsetY,
+				width: blockPixel.width,
+				height: blockPixel.height,
+				size: scale,
+			};
 			console.log(scale);
 			
-			
+			this.blockArray = new Array();
+			for(var y=0;y<blockPixel.height;y++)
+			{
+				this.blockArray[y] = new Array();
+				for(var x=0;x<blockPixel.width;x++)
+				{
+					this.blockArray[y][x] = null;
+				}
+			}
 			if(phina.asset.AssetManager.get("image", "scaledBack") == undefined)
 			{
 				createScaledImage(getImageData("back"), "scaledBack", scale);
 			}
-			var back = Sprite("scaledBack").addChildTo(this.skins);
+			var back = Sprite("scaledBack").addChildTo(this);
 			back.setOrigin(0,0);
 			back.setPosition(offsetX, 0);
 			
-			var drawPixels = function(imageData, dest)
-			{
-				for(var i = 0; i < imageData.data.length; i++)
-				{
-					if(imageData.data[i].a != 255)continue;
-					var block = Block(i % imageData.width, parseInt(i / imageData.width)).addChildTo(dest);
-					block.setSize(scale,scale);
-					block.color = "rgba({r},{g},{b},{a})".format(imageData.data[i]);
-					block.setPosition(
-						offsetX + (block.ix - 1) * scale,
-						offsetY + (block.iy - 1) * scale);
-				}
-			}.bind(this);
-			drawPixels(blockPixel, this.blocks);
+			this.blocks = DisplayElement().addChildTo(this);
 			
+			for(var i = 0; i < blockPixel.data.length; i++)
+			{
+				if(blockPixel.data[i].a != 255)continue;
+				var ix = i % blockPixel.width - 1;
+				var iy = parseInt(i / blockPixel.width) - 1;
+				var block = Block(ix,iy);
+				block.setSize(scale,scale);
+				block.setOrigin(0,0);
+				block.color = "rgba({r},{g},{b},{a})".format(blockPixel.data[i]);
+				block.setPosition(
+					offsetX + ix * scale,
+					offsetY + iy * scale);
+				block.addChildTo(this.blocks);
+				this.blockArray[iy][ix] = block;
+			}
 			
 			this.paddle = Paddle({
 				width: this.gridX.span(3),
@@ -201,6 +212,87 @@
 			cover.tweener.to({alpha:0},1000)
 			cover.addChildTo(this);
 		},
+		testBallBlock: function(app)
+		{
+			var x = parseInt((this.ball.x - this.field.x) / this.field.size);
+			var y = parseInt((this.ball.y - this.field.y) / this.field.size);
+			
+			for(var ix = -BLOCK_PACK_SIZE; ix < BLOCK_PACK_SIZE; ix++)
+			{
+				for(var iy = -BLOCK_PACK_SIZE; iy < BLOCK_PACK_SIZE; iy++)
+				{
+					if(y + iy < 0 || y + iy >= this.field.height
+					|| x + ix < 0 || x + ix >= this.field.width)
+					{
+						continue;
+					}
+					var block = this.blockArray[y + iy][x + ix];
+					if(block == null)
+					{
+						continue;
+					}
+					if(Collision.testCircleRect(this.ball,block))
+					{
+						var dq = Vector2.sub(this.ball, block);
+
+						if(Math.abs(dq.x) <= Math.abs(dq.y))
+						{
+							this.ball.physical.velocity.y *= -1;
+						}
+						if(Math.abs(dq.x) >= Math.abs(dq.y))
+						{
+							this.ball.physical.velocity.x *= -1;
+						}
+						
+						
+						// ボールがヒットしたブロックが属するパックの先頭XYを求める
+						var firstX = block.ix - block.ix % BLOCK_PACK_SIZE;
+						var firstY = block.iy - block.iy % BLOCK_PACK_SIZE;
+						
+						{
+							for(var i=0;i<BLOCK_PACK_SIZE;i++)
+							{
+								for(var j=0;j<BLOCK_PACK_SIZE;j++)
+								{
+									if(this.blockArray[firstY + j][firstX + i] !== null)
+									{
+										var b = this.blockArray[firstY + j][firstX + i];
+										var toX = Random.randint(-5,5);
+										var toY = Random.randint(-5,-10);
+										b.physical.gravity.y = 1;
+										b.physical.force(toX,toY);
+										this.blockArray[firstY + j][firstX + i] = null;
+									}
+								}
+							}
+						}
+						
+						console.log("hit");
+						
+						this.ball.additionalSPEED += ADDITIONAL_SPEED;
+						this.ball.vectorAngle(this.ball.physical.velocity.toDegree());
+						
+						this.combo++;
+						this.score += this.combo * 100;
+						if(this.combo > 1)
+						{
+							var comboLabel = Label(this.combo + "コンボ！")
+								.setPosition(this.ball.x, this.ball.y + this.ball.radius * (6 - this.combo % 10 * 2))
+								.addChildTo(this);
+							comboLabel.fill = "white";
+							comboLabel.tweener.by({
+								y: -this.ball.radius * 6,
+								alpha: -1,
+							}, 500)
+							.call(function()
+							{
+								comboLabel.remove();
+							});
+						}
+					}
+				}
+			};
+		},
 		update: function(app)
 		{
 			this.paddle.x = app.pointer.x;	// パドルをカーソルXに追従
@@ -213,60 +305,7 @@
 			this.time++;
 			
 			// ブロック判定
-			this.blocks.children.each(function(block)
-			{
-				if(Collision.testCircleRect(this.ball,block))
-				{
-					var dq = Vector2.sub(this.ball, block);
-
-					if(Math.abs(dq.x) <= Math.abs(dq.y))
-					{
-						this.ball.physical.velocity.y *= -1;
-					}
-					if(Math.abs(dq.x) >= Math.abs(dq.y))
-					{
-						this.ball.physical.velocity.x *= -1;
-					}
-					
-					
-					// ボールがヒットしたブロックが属するパックの先頭XYを求める
-					var firstX = block.ix - block.ix % BLOCK_PACK_SIZE;
-					var firstY = block.iy - block.iy % BLOCK_PACK_SIZE;
-					// ブロックを全探索
-					this.blocks.children.clone().each(function(rblock)
-					{
-						// ブロック生成時(135行目定義)に設定した位置ix,iyと先頭XYを比較して削除する
-						if(firstX <= rblock.ix && rblock.ix < firstX + BLOCK_PACK_SIZE
-							&& firstY <= rblock.iy && rblock.iy < firstY + BLOCK_PACK_SIZE)
-						{
-							rblock.remove();
-						}
-					}.bind(this));
-					
-					console.log("remove");
-					
-					this.ball.additionalSPEED += ADDITIONAL_SPEED;
-					this.ball.vectorAngle(this.ball.physical.velocity.toDegree());
-					
-					this.combo++;
-					this.score += this.combo * 100;
-					if(this.combo > 1)
-					{
-						var comboLabel = Label(this.combo + "コンボ！")
-							.setPosition(this.ball.x, this.ball.y + this.ball.radius * (6 - this.combo % 10 * 2))
-							.addChildTo(this);
-						comboLabel.fill = "white";
-						comboLabel.tweener.by({
-							y: -this.ball.radius * 6,
-							alpha: -1,
-						}, 500)
-						.call(function()
-						{
-							comboLabel.remove();
-						});
-					}
-				}
-			}.bind(this));
+			this.testBallBlock(app);
 			
 			// パドル判定
 			if(Collision.testCircleRect(this.ball,this.paddle))
@@ -305,6 +344,16 @@
 				this.paddle.hold = true;
 				this.combo = 0;
 			}
+			
+			// いらないもの削除
+			this.blocks.children.each(function(block)
+			{
+				if(block.top > this.gridY.width)
+				{
+					block.remove();
+					console.log("remove");
+				}
+			}.bind(this));
 		},
 		onpointstart: function()
 		{
