@@ -9,6 +9,7 @@
 			"back": "image/back.png",
 		},
 		"sound":{
+			"bgm": "sound/Sparkling Sea.mp3",
 		}
 	};
 	function getImageData(name)
@@ -121,6 +122,7 @@
 		init: function()
 		{
 			this.superInit();
+			
 			var bg = Sprite("bg")
 				.setOrigin(0, 0)
 				.setSize(this.gridY.width*2, this.gridY.width)
@@ -388,7 +390,36 @@
 			}
 		}
 	});
-
+	phina.define("TitleScene",
+	{
+		superClass: "DisplayScene",
+		init: function()
+		{
+			this.superInit();
+			this.backgroundColor = "black";
+			
+			if(false)if (SoundManager.currentMusic == null) {
+				SoundManager.setVolumeMusic(0.2);
+				if (phina.isMobile()) {
+					this.addEventListener("click", function clickevent() {
+						SoundManager.playMusic("bgm");
+						self.removeEventListener("click", clickevent);
+					});
+				} else {
+					SoundManager.playMusic("bgm");
+				}
+			}
+			
+			var label = Label("クリックでスタート")
+				.setPosition(this.gridX.center(), this.gridY.center())
+				.addChildTo(this);
+			label.fill = "white";
+		},
+		onclick: function()
+		{
+			this.exit();
+		}
+	});
 	phina.define("LoadingScene",
 	{
 		superClass: "DisplayScene",
@@ -396,36 +427,25 @@
 			this.superInit(options);
 			this.backgroundColor = "black";
 			var loader = AssetLoader();
-			this.loaded = false;
-			this.ready = false;
 			
-			var label = Label("クリックでスタート")
+			var label = Label("読み込み中...")
 				.setPosition(this.gridX.center(), this.gridY.center())
 				.addChildTo(this);
 			label.fill = "white";
 			
 
 			loader.onload = function() {
-				this.loaded = true;
+				this.flare('loaded');
 			}.bind(this);
 
 			loader.load(options.assets);
-		},
-		onclick: function()
-		{
-			this.ready = true;
-		},
-		update: function()
-		{
-			if(this.ready && this.loaded)
-				this.flare('loaded');
 		},
 	});
 
 	phina.main(function()
 	{
 		var app = GameApp({
-			startLabel: 'main',
+			startLabel: 'title',
 			assets: ASSET,
 		});
 		app.run();
