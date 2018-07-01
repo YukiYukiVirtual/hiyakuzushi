@@ -45,6 +45,21 @@
 			height: h,
 		});
 	}
+	// ニアレストネイバー
+	function createScaledImage(imageData, name, scale)
+	{
+		var newImage = phina.graphics.Canvas().setSize(imageData.width * scale, imageData.height * scale);
+		for(var y=0; y<imageData.height; y++)
+		{
+			for(var x=0;x<imageData.width; x++)
+			{
+				newImage.strokeStyle = newImage.fillStyle = "rgba({r},{g},{b},{a})".format(imageData.data[x + y * imageData.width]);
+				newImage.fillRect(x * scale, y * scale, scale, scale);
+				newImage.strokeRect(x * scale, y * scale, scale, scale);
+			}
+		}
+		phina.asset.AssetManager.set("image", name, newImage);
+	}
 	phina.globalize();
 
 	phina.define("Ball",
@@ -107,7 +122,6 @@
 		init: function()
 		{
 			this.superInit();
-			
 			var bg = Sprite("bg")
 				.setOrigin(0, 0)
 				.setSize(this.gridY.width*2, this.gridY.width)
@@ -125,18 +139,18 @@
 			var sx = lx/blockPixel.width;
 			var sy = ly/blockPixel.height;
 			var scale = Math.min(sx,sy);
+			var offsetX = (this.gridX.width - blockPixel.width * scale) / 2;
+			var offsetY = 0;
 			console.log(scale);
 			
-			this.fieldX = Grid({
-				width: blockPixel.width * scale,
-				columns: blockPixel.width,
-				offset: (this.gridX.width - blockPixel.width * scale) / 2,
-			});
-			this.fieldY = Grid({
-				width: blockPixel.height * scale,
-				columns: blockPixel.height,
-				offset: 0,
-			});
+			
+			if(phina.asset.AssetManager.get("image", "scaledBack") == undefined)
+			{
+				createScaledImage(getImageData("back"), "scaledBack", scale);
+			}
+			var back = Sprite("scaledBack").addChildTo(this.skins);
+			back.setOrigin(0,0);
+			back.setPosition(offsetX, 0);
 			
 			var drawPixels = function(imageData, dest)
 			{
@@ -147,16 +161,12 @@
 					block.setSize(scale,scale);
 					block.color = "rgba({r},{g},{b},{a})".format(imageData.data[i]);
 					block.setPosition(
-						this.fieldX.span(
-							block.ix
-						),
-						this.fieldY.span(
-							block.iy
-						));
+						offsetX + (block.ix - 1) * scale,
+						offsetY + (block.iy - 1) * scale);
 				}
 			}.bind(this);
-			drawPixels(getImageData("back"), this.skins);
 			drawPixels(blockPixel, this.blocks);
+			
 			
 			this.paddle = Paddle({
 				width: this.gridX.span(3),
@@ -328,6 +338,39 @@
 				}
 			}
 		}
+	});
+
+	phina.define("LoadingScene",
+	{
+		superClass: "DisplayScene",
+		init: function(options) {
+			this.superInit(options);
+			this.backgroundColor = "black";
+			var loader = AssetLoader();
+			this.loaded = false;
+			this.ready = false;
+			
+			var label = Label("クリックでスタート")
+				.setPosition(this.gridX.center(), this.gridY.center())
+				.addChildTo(this);
+			label.fill = "white";
+			
+
+			loader.onload = function() {
+				this.loaded = true;
+			}.bind(this);
+
+			loader.load(options.assets);
+		},
+		onclick: function()
+		{
+			this.ready = true;
+		},
+		update: function()
+		{
+			if(this.ready && this.loaded)
+				this.flare('loaded');
+		},
 	});
 
 	phina.main(function()
