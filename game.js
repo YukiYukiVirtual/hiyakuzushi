@@ -91,10 +91,6 @@
 		{
 			this.physical.velocity.fromDegree(deg, this.speed);
 		},
-		update:function()
-		{
-			console.log(this.speed);
-		}
 	});
 	
 	phina.define("Paddle",
