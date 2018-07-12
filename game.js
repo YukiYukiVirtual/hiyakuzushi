@@ -569,15 +569,10 @@
 			this.superInit();
 			this.backgroundColor = "black";
 			
-			var label = Label("音が出ます")
+			var label = Label("PC・Chrome強く推奨\n音が出ます\nOK")
 				.setPosition(this.gridX.center(), this.gridY.center())
 				.addChildTo(this);
 			label.fill = "white";
-			
-			var ok = Label("OK")
-				.setPosition(this.gridX.center(), this.gridY.span(9))
-				.addChildTo(this);
-			ok.fill = "white";
 		},
 		onclick: function()
 		{
