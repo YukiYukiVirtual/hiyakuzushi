@@ -538,7 +538,7 @@
 					:"ヒヤ.ちゃんを水着にできました。ヒヤァ～");
 			shareButton.onclick = function()
 			{
-				var text = '{0}{1}点\n'.format(ptext, param.score);
+				var text = '{0}{1}点'.format(ptext, param.score);
 				var url = phina.social.Twitter.createURL({
 					text: text,
 					hashtags: ["ヒヤ崩し","YukiYukiVirtual"],
