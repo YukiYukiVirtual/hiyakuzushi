@@ -113,17 +113,6 @@
 			this.iy = iy;
 			this.stroke = "transparent";
 		},
-		update: function(app)
-		{
-			var bpm = 125.02;
-			var bps = bpm / 60;
-			var fps = 30;
-			var mul = 4;
-			var mod = (fps / bps * mul);
-			
-			this.stroke = "rgba(255,255,255,{0}".format(
-			Math.abs((app.frame % mod) - mod / 2) / mod / 2);
-		}
 	});
 	
 	phina.define('MainScene',
@@ -230,7 +219,9 @@
 							{
 								for(var j=0;j<BLOCK_PACK_SIZE;j++)
 								{
-									if(this.blockArray[firstY + j][firstX + i] !== null)
+									if(!(firstY + j < 0 || firstY + j >= FIELD.height
+										|| firstX + i < 0 || firstX + i >= FIELD.width)
+										&& this.blockArray[firstY + j][firstX + i] !== null)
 									{
 										var b = this.blockArray[firstY + j][firstX + i];
 										var toX = Random.randint(-5,5);
@@ -297,6 +288,7 @@
 		update: function(app)
 		{
 			this.paddle.x = app.pointer.x;	// パドルをカーソルXに追従
+			
 			// フェーズクリア判定
 			if(this.blocks.children.length == 0)
 			{
@@ -307,20 +299,19 @@
 				{
 					this.exit({
 						phase: PHASE_MAX,
-						blocks: null,
+						blocks: this.blockArray,
 						score: this.score,
 						leftBlockRate: 0,
 					});
 				}
 				else
 				{
-					// ブロック初期化
-					this.initBlocks();
-					
 					// ボールをホールドする
 					this.ball.reset();
 					this.paddle.hold = true;
 					this.combo = 0;
+					// ブロック初期化
+					this.initBlocks();
 				}
 				return;
 			}
@@ -387,9 +378,9 @@
 				}
 			}
 			
-			// いらないもの削除
 			this.blocks.children.each(function(block)
 			{
+				// いらないもの削除
 				if(block.top > this.gridY.width)
 				{
 					block.remove();
@@ -405,6 +396,29 @@
 				this.paddle.hold = false;
 				this.ball.vectorAngle(-45);
 			}
+		},
+		onclick: function()
+		{
+			this.blocks.children.each(function(block)
+			{
+				block.tweener
+				.clear()
+				.set({
+					stroke: "rgba(255,255,255,1)"
+				})
+				.wait(100)
+				.set({
+					stroke: "rgba(255,255,255,0.6)"
+				})
+				.wait(100)
+				.set({
+					stroke: "rgba(255,255,255,0.3)"
+				})
+				.wait(100)
+				.set({
+					stroke: "transparent"
+				});
+			}.bind(this));
 		},
 		_accessor:{
 			score:{
@@ -497,17 +511,16 @@
 				FIELD.x + FIELD.scale * FIELD.width / 2 - FIELD.scale,
 				FIELD.y + FIELD.scale * FIELD.height / 2 - FIELD.scale
 			);
-			if(param.blocks != null)
+			
+			// 残ったブロックの描画
+			for(var x=0;x<FIELD.width;x++)
 			{
-				for(var x=0;x<FIELD.width;x++)
+				for(var y=0;y<FIELD.height;y++)
 				{
-					for(var y=0;y<FIELD.height;y++)
-					{
-						if(param.blocks[y][x] == null)continue;
-						param.blocks[y][x].addChildTo(this);
-						param.blocks[y][x].update = null;
-						param.blocks[y][x].stroke = "transparent";
-					}
+					if(param.blocks[y][x] == null)continue;
+					param.blocks[y][x].addChildTo(this);
+					param.blocks[y][x].tweener.clear();
+					param.blocks[y][x].stroke = "transparent";
 				}
 			}
 			
@@ -531,7 +544,7 @@
 				(param.leftBlockRate < 0.5?
 					"ヒヤ.ちゃんを全然脱がせませんでした。"
 					:"ヒヤ.ちゃんをちょっと脱がしました。")
-				:(param.blocks != null?
+				:(param.leftBlockRate != 0?
 					(param.leftBlockRate < 0.5?
 						"ヒヤ.ちゃんの上着を脱がせました。"
 						:"ヒヤ.ちゃんをほとんど水着にできました。")
@@ -569,7 +582,7 @@
 			this.superInit();
 			this.backgroundColor = "black";
 			
-			var label = Label("PC・Chrome強く推奨\n音が出ます\nOK")
+			var label = Label("音が出ます\nOK")
 				.setPosition(this.gridX.center(), this.gridY.center())
 				.addChildTo(this);
 			label.fill = "white";
