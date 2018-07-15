@@ -290,7 +290,7 @@
 			this.paddle.x = app.pointer.x;	// パドルをカーソルXに追従
 			
 			// フェーズクリア判定
-			if(this.blocks.children.length == 0)
+			if(this.maxBlock == this.brokenBlock)
 			{
 				++this.phase;
 				
@@ -554,7 +554,7 @@
 				var text = '{0}{1}点'.format(ptext, param.score);
 				var url = phina.social.Twitter.createURL({
 					text: text,
-					hashtags: ["ヒヤ崩し","YukiYukiVirtual"],
+					hashtags: ["ヒヤ崩し","YukiYukiVirtual","第2回V1 動画も見てね→https://youtu.be/L_xj5wrY8O8"],
 					url: location.href,
 				});
 				window.open(url, 'share window');
