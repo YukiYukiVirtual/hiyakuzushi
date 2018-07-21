@@ -554,7 +554,7 @@
 				var text = '{0}{1}点'.format(ptext, param.score);
 				var url = phina.social.Twitter.createURL({
 					text: text,
-					hashtags: ["ヒヤ崩し","YukiYukiVirtual","第2回V1 動画も見てね→https://youtu.be/L_xj5wrY8O8"],
+					hashtags: ["ヒヤ崩し","YukiYukiVirtual"],
 					url: location.href,
 				});
 				window.open(url, 'share window');
