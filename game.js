@@ -554,7 +554,7 @@
 				var text = '{0}{1}点'.format(ptext, param.score);
 				var url = phina.social.Twitter.createURL({
 					text: text,
-					hashtags: ["ヒヤ崩し","YukiYukiVirtual"],
+					hashtags: ["ヒヤ崩し", "YukiYukiVirtual", "phina_js"],
 					url: location.href,
 				});
 				window.open(url, 'share window');
